@@ -11,7 +11,7 @@ import psycopg2
 if __name__ == '__main__':
     
     
-    DSN = 'dbname=donator user=postgres host=127.0.0.1 port=5432' # dbname=donator;host=127.0.0.1;port=5432;
+    DSN = 'dbname=donator user=postgres host=192.168.56.101 port=5432' # dbname=donator;host=127.0.0.1;port=5432;
     
     print "Opening connection using dns:", DSN
     conn1 = psycopg2.connect(DSN)
