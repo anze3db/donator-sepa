@@ -6,18 +6,10 @@ Replace these with more appropriate tests for your application.
 """
 
 from django.test import TestCase
+from website.models import get_payments_list
 
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.failUnlessEqual(1 + 1, 2)
-
-__test__ = {"doctest": """
-Another way to test that 1 + 1 is equal to 2.
-
->>> 1 + 1 == 2
-True
-"""}
+class DBtest(TestCase):
+    def test_get_all_db(self):
+        print get_payments_list("2012-12-8", 1)
+        self.failUnlessEqual(1 + 1, 3)
 

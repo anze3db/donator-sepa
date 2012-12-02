@@ -1,5 +1,57 @@
 {% extends "layout.html" %}
 
 {% block content %}
-AAAss
+<form method="post">
+{% csrf_token %}
+<label for="date">Današnji datum: <strong>{{date|date:'d-m-Y'}}</strong></label> 
+<br /><br />
+<select id="day" name="day">
+<option>8</option>
+<option selected="selected">18</option>
+<option>28</option>
+</select> - 
+<select id="month" name="month">
+{% for m in month %}
+<option {% if m.current %}selected="selected"{%endif%}>{{m.month}}</option>
+{% endfor %}
+</select> - 
+<select id="year" name="year">
+{% for y in year %}
+<option {% if y.current %}selected="selected"{%endif%}>{{y.year}}</option>
+{% endfor %}
+</select> 
+za projekt 
+<select id="project" name="project">
+{% for p in project %}
+<option value="{{p.id}}">{{p.project}}</option>
+{% endfor %}
+</select>
+<br /><br />
+<input type="submit" value="Izpiši" />
+</form>
+
+{% if stuff %}
+<form action="/export" method="POST">
+{% csrf_token %}
+
+<table>
+<tr>
+<th></th>
+<th>Referenčna številka</th>
+<th>Znesek</th>
+<th>Poravnalni račun</th>
+
+</tr>
+{% for p in stuff %}
+<tr>
+<td><input type="checkbox" checked="checked" name="id_payement" value="{{p.id_vrstica}}" /></td>
+<td><a href="http://localhost:9080/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{p.id_agreement}}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr" target="_top">{{p.id_agreement}}</a></td>
+<td>{{p.amount}}</td>
+<td>{{p.bank_account2}}</td>
+</tr>
+{% endfor %}
+</table>
+<input type="submit" value="Izvozi" />
+</form>
+{% endif %}
 {% endblock %}
