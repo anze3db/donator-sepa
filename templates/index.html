@@ -30,7 +30,7 @@ za projekt
 <input type="submit" value="Izpiši" />
 </form>
 
-{% if stuff %}
+{% if installments %}
 <form action="/export" method="POST">
 {% csrf_token %}
 
@@ -42,7 +42,7 @@ za projekt
 <th>Poravnalni račun</th>
 
 </tr>
-{% for p in stuff %}
+{% for p in installments %}
 <tr>
 <td><input type="checkbox" checked="checked" name="id_payement" value="{{p.id_vrstica}}" /></td>
 <td><a href="http://localhost:9080/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{p.id_agreement}}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr" target="_top">{{p.id_agreement}}</a></td>

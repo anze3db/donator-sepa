@@ -1,35 +1,23 @@
-# Create your views here.
-from django.http import HttpResponse
-from lxml.etree import tostring 
-from lxml.builder import E
-from django.db import connection
-from django.shortcuts import render_to_response
-from django.utils.datetime_safe import datetime
 from datetime import date
+from django.db import connection
+from django.http import HttpResponse
+from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from django.utils.datetime_safe import datetime
+from lxml.builder import E
+from lxml.etree import tostring
 from website.models import get_payments_list
+import time
 
 def index(request):
 
     cursor = connection.cursor()
-    stuff = []
+    installments = []
     #, sfr_project as pr, sfr_project_trr as trr "\
     if request.POST:
-        
-#        "SELECT  ".
-#                   "a.zap_st_dolznika, a.sifra_banke, a.stara_pogodba ".
-#                   "FROM agreement_pay_installment as p, sfr_agreement as a ".
-#                   "WHERE p.id_vrstica= ? AND a.id_agreement = p.id_agreement ".
-#                   "ORDER BY a.sifra_banke"
-        
-        
-        
-        
-        
-
-    # Data retrieval operation - no commit required
         date = '-'.join([request.POST['year'], request.POST['month'], request.POST['day']])
-        stuff = get_payments_list(date, request.POST['project'])
+        installments = get_payments_list(date, request.POST['project'])
+        print installments
 
     cursor.execute("SELECT * FROM sfr_project;")
     rows = cursor.fetchall()
@@ -44,18 +32,81 @@ def index(request):
     y = int(datetime.now().strftime("%Y"))
     year   = [{"year": i, "current":i==y} for i in range(2010,y+4,1)]
     
-    
-    
-    
-    return render_to_response('index.html', {'date': datetime.now(), 'month': month, 'year':year, 'project':project, 'stuff': stuff},
-                              context_instance=RequestContext(request))
-    
+    return render_to_response('index.html', {
+                                   'date': datetime.now(), 
+                                   'month': month, 
+                                   'year':year, 
+                                   'project':project, 
+                                   'installments': installments
+                               }, context_instance=RequestContext(request))
+
 def export(request):
     if request.POST:
         
-        print request.POST.getlist('id_payement')
+        pay = [get_payments_list(p)[0] for p in request.POST.getlist('id_payement')]
+
+        nbOfTxs, CtrlSum = (str(len(pay)), str(sum([p['amount'] for p in pay])))
+
+        header = E.GrpHdr(E.MsgId("001"), # TODO: Do this 
+            E.CreDtTm(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())),
+            E.NbOfTxs(nbOfTxs),
+            E.CtrlSum(CtrlSum),
+            E.InitgPty(
+                E.Nm(pay[0]['name_project']),
+                #  VID= SI83ZZZ79740111 Fundacija= SI60ZZZ85420263
+                E.Id(E.OrgId(E.Othr(E.Id("SI60ZZZ85420263" if pay[0]['id_project'] == 2 else "SI83ZZZ79740111"))))
+                )
+        )
         
-        xml = tostring(E.results(E.country(name='neki')), pretty_print = True, xml_declaration=True, encoding='UTF-8')
+        payment = E.PmtInf(
+            E.PmtInfId("PAK000001"), #TODO: How?
+            E.PmtMtd("DD"),
+            E.BtchBookg("false"),
+            E.NbOfTxs(nbOfTxs),
+            E.CtrlSum(CtrlSum),
+            E.PmtTpInf(E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("FRST")), # TODO: Don't understand FRST
+            E.ReqdColltnDt(pay[0]['date_activate'].strftime("%Y-%m-%d")),
+            E.Cdtr(E.Nm(pay[0]['name_project']), E.PstlAdr(
+                E.Ctry("SI"),
+                E.AddrLine("Planina 3"),
+                E.AddrLine("4000 Kranj")
+            )),
+            E.CdtrAcct(E.Id(E.IBAN(pay[0]["id_trr"]))), # TOO :(
+            E.CdtrAgt(E.FinInstnId(E.BIC("???"))),
+            # TODO WHAT IS THIS: E.UltmtCdtr(),
+            E.ChrgBr("SLEV"),
+            E.CdtrSchmeId(),
+        )
+        for p in pay:
+            TxInf = E.DrctDbtTxInf(
+                E.PmtId(E.PmtId(E.EndToEndId(p['id_agreement']))),
+                E.InstdAmt(str(p['amount']), Ccy="EUR"),
+                E.ChrgBr("SLEV"),
+                E.DrctDbtTx(E.MndtRltdInf(
+                    # TODO: Pridobitev soglasja
+                    E.MndtId(),
+                    E.DtOfSgntr(),
+                    E.AmdmntInd("false"),  
+                )),
+                E.DbtrAgt(E.FinInstnId(E.BIC(p['bic']))), # TODO: BIC?
+                E.Dbtr(
+                    E.Nm(p['first_name'] + " " +p['scnd_name']),
+                    E.PstlAdr(
+                        E.Ctry("SI"),
+                        E.AdrLine(p['street'] + " " + p['street_number']),
+                        E.AdrLine(p['post_name'])
+                    ),
+                    E.Id(E.Othr(str(p['id_donor']))) # TODO: Is this OK?
+                ),
+                E.DbtrAcct(E.Id(E.IBAN(p['bank_account2']))),
+                #E.UltmtDbtr(), # TODO: Is this necissary
+                E.Purp(), # TODO: Kaksen je namen?
+                E.RmtInf() # TODO: WTF?
+            )
+            payment.append(TxInf)
+        
+        x = E.Document(E.CstmrDrctDbtInitn(header, payment))
+        xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
         
         return HttpResponse(xml, 'xml')
     
