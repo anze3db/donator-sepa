@@ -44,7 +44,10 @@ def export(request):
     if request.POST:
         
         pay = [get_payments_list(p)[0] for p in request.POST.getlist('id_payement')]
-
+        for i in range(len(pay)):
+            for j in pay[i].keys():
+                if isinstance(pay[i][j], basestring):
+                    pay[i][j] = pay[i][j].strip()
         nbOfTxs, CtrlSum = (str(len(pay)), str(sum([p['amount'] for p in pay])))
 
         header = E.GrpHdr(E.MsgId("001"), # TODO: Do this 
@@ -71,7 +74,7 @@ def export(request):
                 E.AddrLine("Planina 3"),
                 E.AddrLine("4000 Kranj")
             )),
-            E.CdtrAcct(E.Id(E.IBAN(pay[0]["id_trr"]))), # TOO :(
+            E.CdtrAcct(E.Id(E.IBAN(pay[0]["id_trr"]))), # TODO :(
             E.CdtrAgt(E.FinInstnId(E.BIC("???"))),
             # TODO WHAT IS THIS: E.UltmtCdtr(),
             E.ChrgBr("SLEV"),
