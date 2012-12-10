@@ -1,4 +1,5 @@
 from django.db import connection
+import time
 
 def dictfetchall(cursor):
     "Returns all rows from a cursor as a dict"
@@ -30,6 +31,19 @@ def get_payments_list(*args):
     cursor.execute(sql, args)
     return dictfetchall(cursor)
     
-def get_payments_details(payment):
+def get_available_approvals():
     cursor = connection.cursor()
-    
+    sql = "SELECT * FROM approvals WHERE available = TRUE"
+    cursor.execute(sql)
+    return [a['approval'] for a in dictfetchall(cursor)]
+
+def generate_approvals(num):
+    cursor = connection.cursor()
+    approvals = []
+    cursor.execute("BEGIN")
+    for v in range(num):
+        a = (time.strftime("%Y%m%d%H%M%S", time.localtime()) + ("%03d" % (v+1)))
+        cursor.execute("INSERT INTO approvals (approval, available) VALUES (%s, TRUE)", (a,))
+        approvals.append(a)
+    cursor.execute("COMMIT")
+    return approvals

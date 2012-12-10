@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
-
 {% block content %}
+<div style="float:left; padding-right:20px;">
+<h3>Izvoz direktnih bremenitev:</h3>
 <form method="post">
 {% csrf_token %}
 <label for="date">Današnji datum: <strong>{{date|date:'d-m-Y'}}</strong></label> 
@@ -54,4 +55,17 @@ za projekt
 <input type="submit" value="Izvozi" />
 </form>
 {% endif %}
+</div>
+<div style="float:left; padding-left:20px; border-left: 1px solid black;">
+<h3>Soglasja:</h3>
+<form action="/approvals" method="POST">
+{% csrf_token %}
+<input type="number" value="10" name="num_approvals" />
+<input type="submit" value="Generiraj" />
+
+</form>
+<br />
+Št. prostih soglasij <strong>{{num_approvals}}</strong><br />
+<a href="/approvals_show">Prikaži</a>
+</div>
 {% endblock %}
