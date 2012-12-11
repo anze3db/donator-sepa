@@ -96,8 +96,8 @@ def export(request):
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
                     # TODO: Pridobitev soglasja
-                    E.MndtId(),
-                    E.DtOfSgntr(),
+                    E.MndtId(str(p['approval'])),
+                    E.DtOfSgntr(p['approval_date'].strftime("%Y-%m-%d")),
                     E.AmdmntInd("false"),  
                 )),
                 E.DbtrAgt(E.FinInstnId(E.BIC(p['bic']))), # TODO: BIC?
@@ -120,12 +120,17 @@ def export(request):
         x = E.Document(E.CstmrDrctDbtInitn(header, payment))
         xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
         
-        return HttpResponse(xml, 'xml')
+        
+        response =  HttpResponse(xml, 'xml')
+        #response['Content-Disposition'] = 'attachment; filename="db%s.xml"' % time.strftime("%Y-%m-%d", time.localtime())
+        return response
     
 def approvals(request):
     if request.POST:
         a = generate_approvals(int(request.POST['num_approvals']))
-        return HttpResponse("\n".join(a), 'text')
+        response = HttpResponse("\n".join(a), 'text')
+        response['Content-Disposition'] = 'attachment; filename="sog%s.txt"' % time.strftime("%Y-%m-%d", time.localtime())
+        return response
     
 def approvals_show(request):
     return HttpResponse("\n".join(get_available_approvals()), 'text')
