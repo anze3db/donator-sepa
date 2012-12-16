@@ -122,7 +122,7 @@ def export(request):
         
         
         response =  HttpResponse(xml, 'xml')
-        #response['Content-Disposition'] = 'attachment; filename="db%s.xml"' % time.strftime("%Y-%m-%d", time.localtime())
+        response['Content-Disposition'] = 'attachment; filename="db%s.xml"' % time.strftime("%Y-%m-%d", time.localtime())
         return response
     
 def approvals(request):
