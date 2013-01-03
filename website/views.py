@@ -58,6 +58,9 @@ def export(request):
         rf = time.strftime("%Y%m%d%H%M%S", time.localtime()) + str(nbOfTxs)
         ctrl = "%02d" % (98-(int(rf + "271500") % 97))
         hd = "RF"+ctrl+rf
+        #  VID= SI83ZZZ79740111 Fundacija= SI60ZZZ85420263
+        theId = "SI60ZZZ85420263" if pay[0]['id_project'] == 2 else "SI83ZZZ79740111"
+        
         header = E.GrpHdr(E.MsgId(hd),
                           
             E.CreDtTm(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())),
@@ -65,33 +68,32 @@ def export(request):
             E.CtrlSum(CtrlSum),
             E.InitgPty(
                 E.Nm(pay[0]['name_project']),
-                #  VID= SI83ZZZ79740111 Fundacija= SI60ZZZ85420263
-                E.Id(E.OrgId(E.Othr(E.Id("SI60ZZZ85420263" if pay[0]['id_project'] == 2 else "SI83ZZZ79740111"))))
+                E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))
                 )
         )
         
         payment = E.PmtInf(
-            E.PmtInfId("PAK"+rf),
+            E.PmtInfId(hd),
             E.PmtMtd("DD"),
             E.BtchBookg("FALSE"),
             E.NbOfTxs(nbOfTxs),
             E.CtrlSum(CtrlSum),
-            E.PmtTpInf(E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("FRST")), # TODO: FRST- RCUR - FNAL????
+            E.PmtTpInf(E.InstrPrty("NORM"), E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("RCUR")),
             E.ReqdColltnDt(pay[0]['date_activate'].strftime("%Y-%m-%d")),
             E.Cdtr(E.Nm(pay[0]['name_project']), E.PstlAdr(
                 E.Ctry("SI"),
                 E.AddrLine("Planina 3"),
                 E.AddrLine("4000 Kranj")
             )),
-            E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", "")))), # TODO :(
-            E.CdtrAgt(E.FinInstnId(E.BIC("???"))),
-            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.BICOrBEI("???"), E.Othr(E.Id("???"))), # TODO: AAAA
+            E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
+            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank
+            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))), # TODO: Identifikacijska oznaka prejemnika?
             E.ChrgBr("SLEV"),
-            E.CdtrSchmeId(), # TODO: BBBB
+            E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))), # TODO: Figure out Id
         )
         for p in pay:
             TxInf = E.DrctDbtTxInf(
-                E.PmtId(E.PmtId(E.EndToEndId(p['id_agreement']))),
+                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("RF"+p['id_agreement'])), # TODO: Instr ID
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
@@ -99,7 +101,7 @@ def export(request):
                     E.DtOfSgntr(p['approval_date'].strftime("%Y-%m-%d")),
                     E.AmdmntInd("false"),  
                 )),
-                E.DbtrAgt(E.FinInstnId(E.BIC(p['bic']))), # TODO: BIC?
+                E.DbtrAgt(E.FinInstnId(E.BIC("KBMASI2X"))), # TODO: BIC!
                 E.Dbtr(
                     E.Nm(p['first_name'] + " " +p['scnd_name']),
                     E.PstlAdr(
@@ -107,12 +109,14 @@ def export(request):
                         E.AdrLine(p['street'] + " " + p['street_number']),
                         E.AdrLine(p['post_name'])
                     ),
-                    E.Id(E.Othr(str(p['id_donor']))) # TODO: Is this OK?
+                    E.Id(E.PrvtId(E.Othr(E.Id(str(p['id_donor']))))) 
                 ),
-                E.DbtrAcct(E.Id(E.IBAN(p['bank_account2']))),
-                #E.UltmtDbtr(), # TODO: Is this necissary
+                E.DbtrAcct(E.Id(E.IBAN("SI56" + p['bank_account2'].replace(' ', '')))),
+                E.UltmtDbtr(E.Nm(p['first_name'] + " " +p['scnd_name']), 
+                            E.Id(E.PrvtId(E.Othr(E.Id(str(p['id_donor'])))))
+                ),
                 E.Purp(E.Cd("CHAR")),
-                E.RmtInf() # TODO: WTF?
+                E.RmtInf(E.Strd(E.CdtrRefInf(E.Tp(E.CdOrPrtry(E.Prtry("SCOR"))), E.Ref(str(p['approval']))))) # TODO: WHAT IS REF?
             )
             payment.append(TxInf)
         
