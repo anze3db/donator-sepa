@@ -71,12 +71,12 @@ def export(request):
         )
         
         payment = E.PmtInf(
-            E.PmtInfId("PAK"+rf), #TODO: Is this OK?
+            E.PmtInfId("PAK"+rf),
             E.PmtMtd("DD"),
             E.BtchBookg("FALSE"),
             E.NbOfTxs(nbOfTxs),
             E.CtrlSum(CtrlSum),
-            E.PmtTpInf(E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("FRST")), # TODO: FRST- RCUR - FNAL
+            E.PmtTpInf(E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("FRST")), # TODO: FRST- RCUR - FNAL????
             E.ReqdColltnDt(pay[0]['date_activate'].strftime("%Y-%m-%d")),
             E.Cdtr(E.Nm(pay[0]['name_project']), E.PstlAdr(
                 E.Ctry("SI"),
@@ -85,9 +85,9 @@ def export(request):
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", "")))), # TODO :(
             E.CdtrAgt(E.FinInstnId(E.BIC("???"))),
-            # TODO WHAT IS THIS: E.UltmtCdtr(),
+            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.BICOrBEI("???"), E.Othr(E.Id("???"))), # TODO: AAAA
             E.ChrgBr("SLEV"),
-            E.CdtrSchmeId(),
+            E.CdtrSchmeId(), # TODO: BBBB
         )
         for p in pay:
             TxInf = E.DrctDbtTxInf(
@@ -95,7 +95,6 @@ def export(request):
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
-                    # TODO: Pridobitev soglasja
                     E.MndtId(str(p['approval'])),
                     E.DtOfSgntr(p['approval_date'].strftime("%Y-%m-%d")),
                     E.AmdmntInd("false"),  
