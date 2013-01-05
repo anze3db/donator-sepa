@@ -9,12 +9,30 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+def clear_banks():
+    cursor = connection.cursor()
+    sql = "DELETE FROM sfr_bank"
+    cursor.execute(sql)
+    cursor.execute("COMMIT")
+    print "banks should be clear"
+
+def add_bank(bank):
+    cursor = connection.cursor()
+    sql = "INSERT INTO sfr_bank (bank_name, sifra_banke, bank_tn, bic) VALUES(%s, %s, %s, %s)"
+    bank[1] = "%02d" % int(bank[1])
+    bank[2] = bank[2].replace("SI56", "").replace(" ", "")
+    bank[3] = bank[3].replace(" ", "")
+    print "bank_name, sifra_banke, bank_tn, bic"
+    print bank
+    cursor.execute(sql,bank)
+    cursor.execute("COMMIT")
+
 
 def get_payments_list(*args):
     
     cursor = connection.cursor()
     
-    sql = "SELECT a.*, p.*, pr.name_project, b.sifra_banke as bic, trr.id_trr "\
+    sql = "SELECT a.*, p.*, pr.name_project, b.bic, trr.id_trr "\
         + "FROM agreement_pay_installment as p, sfr_agreement as a, sfr_bank as b, sfr_project as pr "\
         + "JOIN sfr_project_trr as trr ON trr.id_vrstica = "\
         + "   (SELECT id_vrstica FROM sfr_project_trr WHERE id_project = pr.id_project LIMIT 1)  "\

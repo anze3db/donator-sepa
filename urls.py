@@ -9,5 +9,6 @@ urlpatterns = patterns('',
     url(r'^approvals_show', views.approvals_show, name='approvals_show'),
     url(r'^approvals', views.approvals, name='approvals'),
     url(r'^export', views.export, name='export'),
+    url(r'^update_banks', views.update_banks, name='update_banks'),
     url(r'^$', views.index, name='index'),
 )

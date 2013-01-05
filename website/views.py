@@ -6,7 +6,7 @@ from django.template.context import RequestContext
 from django.utils.datetime_safe import datetime
 from lxml.builder import E
 from lxml.etree import tostring
-from website.models import get_payments_list, get_available_approvals, generate_approvals
+from website.models import get_payments_list, get_available_approvals, generate_approvals, clear_banks, add_bank
 import time
 
 def index(request):
@@ -87,13 +87,13 @@ def export(request):
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
             E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank
-            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))), # TODO: Identifikacijska oznaka prejemnika?
+            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
             E.ChrgBr("SLEV"),
-            E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))), # TODO: Figure out Id
+            E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))),
         )
         for p in pay:
             TxInf = E.DrctDbtTxInf(
-                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("RF"+p['id_agreement'])), # TODO: Instr ID
+                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("RF"+p['id_agreement'])),
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
@@ -101,7 +101,7 @@ def export(request):
                     E.DtOfSgntr(p['approval_date'].strftime("%Y-%m-%d")),
                     E.AmdmntInd("false"),  
                 )),
-                E.DbtrAgt(E.FinInstnId(E.BIC("KBMASI2X"))), # TODO: BIC!
+                E.DbtrAgt(E.FinInstnId(E.BIC(p['bic']))),
                 E.Dbtr(
                     E.Nm(p['first_name'] + " " +p['scnd_name']),
                     E.PstlAdr(
@@ -138,4 +138,12 @@ def approvals(request):
 def approvals_show(request):
     return HttpResponse("\n".join(get_available_approvals()), 'text')
 
+def update_banks(request):
+    banks = open("banks").readlines()
 
+    clear_banks()
+
+    for bank in banks:
+        add_bank(bank.strip().split("    "))
+
+    return HttpResponse("O", 'text')
