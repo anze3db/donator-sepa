@@ -17,7 +17,6 @@ def index(request):
     if request.POST:
         date = '-'.join([request.POST['year'], request.POST['month'], request.POST['day']])
         installments = get_payments_list(date, request.POST['project'])
-        print installments
 
     cursor.execute("SELECT * FROM sfr_project;")
     rows = cursor.fetchall()
@@ -46,6 +45,9 @@ def index(request):
 def export(request):
     if request.POST:
         
+        
+        cursor = connection.cursor()
+        cursor.execute("BEGIN;")
         pay = [get_payments_list(p)[0] for p in request.POST.getlist('id_payement')]
         
         # Strip strings:
@@ -86,12 +88,22 @@ def export(request):
                 E.AddrLine("4000 Kranj")
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
-            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank
+            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank    
             E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
             E.ChrgBr("SLEV"),
             E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))),
         )
         for p in pay:
+            print request.POST
+            if 'record-transaction' in request.POST:
+                sql = "UPDATE agreement_pay_installment "\
+                    + "SET amount_payed=%s, id_packet_pp=%s, date_due=date_activate "\
+                    + "WHERE id_vrstica = %s"
+                
+                cursor.execute(sql,[p['amount'], "1", p['id_vrstica']])
+            
+            
+            
             TxInf = E.DrctDbtTxInf(
                 E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("RF"+p['id_agreement'])),
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
@@ -124,8 +136,15 @@ def export(request):
         xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
         
         
+        filename = "db%s.xml" % time.strftime("%Y-%m-%d", time.localtime())
+        
+        sql = "INSERT INTO datoteke_izvozene (filename, content) VALUES (%s, %s)"
+        cursor.execute(sql, [filename, xml])
+        
+        
+        cursor.execute("COMMIT;")
         response =  HttpResponse(xml, 'xml')
-        response['Content-Disposition'] = 'attachment; filename="db%s.xml"' % time.strftime("%Y-%m-%d", time.localtime())
+        response['Content-Disposition'] = 'attachment; filename="%s"' % filename
         return response
     
 def approvals(request):

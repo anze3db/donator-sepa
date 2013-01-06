@@ -22,8 +22,6 @@ def add_bank(bank):
     bank[1] = "%02d" % int(bank[1])
     bank[2] = bank[2].replace("SI56", "").replace(" ", "")
     bank[3] = bank[3].replace(" ", "")
-    print "bank_name, sifra_banke, bank_tn, bic"
-    print bank
     cursor.execute(sql,bank)
     cursor.execute("COMMIT")
 
@@ -38,16 +36,38 @@ def get_payments_list(*args):
         + "   (SELECT id_vrstica FROM sfr_project_trr WHERE id_project = pr.id_project LIMIT 1)  "\
         + "WHERE p.id_agreement = a.id_agreement AND p.pay_type='04' "\
         + "  AND pr.id_project = a.id_project AND trr.id_project = a.id_project "\
-        + "  AND b.sifra_banke ILIKE a.sifra_banke || '%%' "
+        + "  AND b.sifra_banke ILIKE a.sifra_banke || '%%' "\
+        + "  AND (p.amount_payed IS NULL OR p.amount > p.amount_payed)"
     
     if len(args) == 1:
         sql += "  AND p.id_vrstica = %s "
     else:
         sql += "  AND p.date_activate = %s AND a.id_project = %s "
-             
-    sql += "ORDER BY a.sifra_banke"
+    
+    
+    result = {"OOFF":[], "FRST":[], "RCUR":[], "FNAL": []}
+
+    ooff = sql + "  AND 1 = (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)  "
+    cursor.execute(ooff + "ORDER BY a.sifra_banke", args)
+    result["OOFF"] = dictfetchall(cursor)
+    
+    frst = sql + "  AND 1 < (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)  "\
+               + "  AND installment_nr = 1 "
+    cursor.execute(frst + "ORDER BY a.sifra_banke", args)
+    result["FRST"] = dictfetchall(cursor)
+    
+    rcur = sql + "  AND installment_nr < (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)  "\
+               + " AND installment_nr > 1 "
+    cursor.execute(rcur + "ORDER BY a.sifra_banke", args)
+    result["RCUR"] = dictfetchall(cursor)
+    
+    fnal = sql + "  AND installment_nr = (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)  "\
+               + "  AND 1 < (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)"
+    cursor.execute(fnal + "ORDER BY a.sifra_banke", args)
+    result["FNAL"] = dictfetchall(cursor)
+    
     cursor.execute(sql, args)
-    return dictfetchall(cursor)
+    return result
     
 def get_available_approvals():
     cursor = connection.cursor()
