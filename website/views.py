@@ -81,10 +81,13 @@ def export(request):
         payment = E.PmtInf(
             E.PmtInfId(hd),
             E.PmtMtd("DD"),
-            E.BtchBookg("FALSE"),
+            E.BtchBookg("false"),
             E.NbOfTxs(nbOfTxs),
             E.CtrlSum(CtrlSum),
-            E.PmtTpInf(E.InstrPrty("NORM"), E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp(request.POST['type'])),
+            E.PmtTpInf(E.InstrPrty("NORM"), 
+                       E.SvcLvl(E.Cd("SEPA")), 
+                       E.LclInstrm(E.Cd("CORE")), 
+                       E.SeqTp(request.POST['type'])),
             E.ReqdColltnDt(pay[0]['date_activate'].strftime("%Y-%m-%d")),
             E.Cdtr(E.Nm(pay[0]['name_project']), E.PstlAdr(
                 E.Ctry("SI"),
@@ -109,7 +112,7 @@ def export(request):
             
             
             TxInf = E.DrctDbtTxInf(
-                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("RF"+p['id_agreement'])),
+                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("SI"+p['id_agreement'])),
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
@@ -132,7 +135,7 @@ def export(request):
                             E.Id(E.PrvtId(E.Othr(E.Id(str(p['id_donor'])))))
                 ),
                 E.Purp(E.Cd("CHAR")),
-                E.RmtInf(E.Strd(E.CdtrRefInf(E.Tp(E.CdOrPrtry(E.Prtry("SCOR"))), E.Ref(str(p['approval'])))))
+                E.RmtInf(E.Ustrd("DONACIJA %s-%s" % (str(p['id_agreement']), str(p["id_vrstica"]))))
             )
             payment.append(TxInf)
         
