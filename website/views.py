@@ -8,6 +8,8 @@ from lxml.builder import E
 from lxml.etree import tostring
 from website.models import get_payments_list, get_available_approvals, generate_approvals, clear_banks, add_bank
 import time
+import lxml
+from xml.etree.ElementTree import Element, SubElement
 
 def index(request):
 
@@ -63,6 +65,8 @@ def export(request):
         #  VID= SI83ZZZ79740111 Fundacija= SI60ZZZ85420263
         theId = "SI60ZZZ85420263" if pay[0]['id_project'] == 2 else "SI83ZZZ79740111"
         
+        
+        
         header = E.GrpHdr(E.MsgId(hd),
                           
             E.CreDtTm(time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime())),
@@ -80,12 +84,12 @@ def export(request):
             E.BtchBookg("FALSE"),
             E.NbOfTxs(nbOfTxs),
             E.CtrlSum(CtrlSum),
-            E.PmtTpInf(E.InstrPrty("NORM"), E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp("RCUR")),
+            E.PmtTpInf(E.InstrPrty("NORM"), E.SvcLvl(E.Cd("SEPA")), E.LclInstrm(E.Cd("CORE")), E.SeqTp(request.POST['type'])),
             E.ReqdColltnDt(pay[0]['date_activate'].strftime("%Y-%m-%d")),
             E.Cdtr(E.Nm(pay[0]['name_project']), E.PstlAdr(
                 E.Ctry("SI"),
-                E.AddrLine("Planina 3"),
-                E.AddrLine("4000 Kranj")
+                E.AdrLine("Planina 3"),
+                E.AdrLine("4000 Kranj")
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
             E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank    
@@ -100,7 +104,7 @@ def export(request):
                     + "SET amount_payed=%s, id_packet_pp=%s, date_due=date_activate "\
                     + "WHERE id_vrstica = %s"
                 
-                cursor.execute(sql,[p['amount'], "1", p['id_vrstica']])
+                cursor.execute(sql,[p['amount'], "0", p['id_vrstica']])
             
             
             
@@ -128,13 +132,16 @@ def export(request):
                             E.Id(E.PrvtId(E.Othr(E.Id(str(p['id_donor'])))))
                 ),
                 E.Purp(E.Cd("CHAR")),
-                E.RmtInf(E.Strd(E.CdtrRefInf(E.Tp(E.CdOrPrtry(E.Prtry("SCOR"))), E.Ref(str(p['approval']))))) # TODO: WHAT IS REF?
+                E.RmtInf(E.Strd(E.CdtrRefInf(E.Tp(E.CdOrPrtry(E.Prtry("SCOR"))), E.Ref(str(p['approval'])))))
             )
             payment.append(TxInf)
         
-        x = E.Document(E.CstmrDrctDbtInitn(header, payment))
-        xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
         
+        
+        x = E.Document(E.CstmrDrctDbtInitn(header, payment), xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02")
+        x.set("xmlns__xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
+        xml = xml.replace('xmlns__xsi', 'xmlns:xsi') # I can't seem to set this attrib normaly
         
         filename = "db%s.xml" % time.strftime("%Y-%m-%d", time.localtime())
         

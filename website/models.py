@@ -41,6 +41,8 @@ def get_payments_list(*args):
     
     if len(args) == 1:
         sql += "  AND p.id_vrstica = %s "
+        cursor.execute(sql  + "ORDER BY a.sifra_banke", args)
+        return dictfetchall(cursor)
     else:
         sql += "  AND p.date_activate = %s AND a.id_project = %s "
     
