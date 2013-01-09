@@ -63,6 +63,10 @@ def get_payments_list(*args):
     cursor.execute(rcur + "ORDER BY a.sifra_banke", args)
     result["RCUR"] = dictfetchall(cursor)
     
+    if args[0] == "2013-1-18":
+        result["FRST"] += result["RCUR"]
+        result["RCUR"] = []
+    
     fnal = sql + "  AND installment_nr = (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)  "\
                + "  AND 1 < (SELECT COUNT(*) FROM agreement_pay_installment WHERE id_agreement = a.id_agreement)"
     cursor.execute(fnal + "ORDER BY a.sifra_banke", args)
