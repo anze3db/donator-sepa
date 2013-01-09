@@ -14,7 +14,6 @@ def clear_banks():
     sql = "DELETE FROM sfr_bank"
     cursor.execute(sql)
     cursor.execute("COMMIT")
-    print "banks should be clear"
 
 def add_bank(bank):
     cursor = connection.cursor()

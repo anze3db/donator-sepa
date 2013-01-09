@@ -8,14 +8,11 @@ from lxml.builder import E
 from lxml.etree import tostring
 from website.models import get_payments_list, get_available_approvals, generate_approvals, clear_banks, add_bank
 import time
-import lxml
-from xml.etree.ElementTree import Element, SubElement
 
 def index(request):
 
     cursor = connection.cursor()
     installments = []
-    #, sfr_project as pr, sfr_project_trr as trr "\
     if request.POST:
         date = '-'.join([request.POST['year'], request.POST['month'], request.POST['day']])
         installments = get_payments_list(date, request.POST['project'])
@@ -96,13 +93,12 @@ def export(request):
                 E.AdrLine("4000 Kranj")
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
-            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank    
+            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))),
             #E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
             E.ChrgBr("SLEV"),
             E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))),
         )
         for p in pay:
-            print request.POST
             if 'record-transaction' in request.POST:
                 sql = "UPDATE agreement_pay_installment "\
                     + "SET amount_payed=%s, id_packet_pp=%s, date_due=date_activate "\
@@ -144,7 +140,7 @@ def export(request):
         
         x = E.Document(E.CstmrDrctDbtInitn(header, payment), xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02")
         x.set("xmlns__xsi", "http://www.w3.org/2001/XMLSchema-instance")
-        xml = tostring(x, pretty_print = True, xml_declaration=True, encoding='UTF-8')
+        xml = tostring(x, pretty_print = False, xml_declaration=True, encoding='UTF-8')
         xml = xml.replace('xmlns__xsi', 'xmlns:xsi') # I can't seem to set this attrib normaly
         
         filename = "db%s.xml" % time.strftime("%Y-%m-%d", time.localtime())
