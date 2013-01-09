@@ -61,7 +61,7 @@ def export(request):
         nbOfTxs, CtrlSum = (str(len(pay)), str(sum([p['amount'] for p in pay])))
         rf = time.strftime("%Y%m%d%H%M%S", time.localtime()) + str(nbOfTxs)
         ctrl = "%02d" % (98-(int(rf + "271500") % 97))
-        hd = "RF"+ctrl+rf
+        hd = ""+ctrl+rf
         #  VID= SI83ZZZ79740111 Fundacija= SI60ZZZ85420263
         theId = "SI60ZZZ85420263" if pay[0]['id_project'] == 2 else "SI83ZZZ79740111"
         
@@ -74,7 +74,8 @@ def export(request):
             E.CtrlSum(CtrlSum),
             E.InitgPty(
                 E.Nm(pay[0]['name_project']),
-                E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))
+                E.Id(E.OrgId(E.Othr(E.Id(theId[7:]), E.SchmeNm(E.Prtry('SEPA')))))
+                
                 )
         )
         
@@ -96,7 +97,7 @@ def export(request):
             )),
             E.CdtrAcct(E.Id(E.IBAN("SI56"+pay[0]["id_trr"].replace("-", ""))), E.Ccy('EUR')),
             E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))), # TODO: Should get this from bank    
-            E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
+            #E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
             E.ChrgBr("SLEV"),
             E.CdtrSchmeId(E.Id(E.PrvtId(E.Othr(E.Id(theId), E.SchmeNm(E.Prtry("SEPA")))))),
         )
@@ -110,9 +111,9 @@ def export(request):
                 cursor.execute(sql,[p['amount'], "0", p['id_vrstica']])
             
             
-            
             TxInf = E.DrctDbtTxInf(
-                E.PmtId(E.InstrId(p['id_agreement']), E.EndToEndId("SI"+p['id_agreement'])),
+                E.PmtId(E.InstrId("SI00"+p['id_agreement'][:8] + "-" + p['id_agreement'][8:]),
+                        E.EndToEndId("SI00"+p['id_agreement'][:8] + "-" + p['id_agreement'][8:])),
                 E.InstdAmt(str(p['amount']), Ccy="EUR"),
                 E.ChrgBr("SLEV"),
                 E.DrctDbtTx(E.MndtRltdInf(
