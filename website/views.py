@@ -165,7 +165,7 @@ def approvals_show(request):
     return HttpResponse("\n".join(get_available_approvals()), 'text')
 
 def update_banks(request):
-    banks = open("banks").readlines()
+    banks = open("/home/smotko/sepa-production/banks").readlines()
 
     clear_banks()
 
