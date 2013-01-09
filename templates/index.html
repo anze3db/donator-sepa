@@ -49,7 +49,7 @@ za projekt
 {% for p in value %}
 <tr>
 <td><input type="checkbox" checked="checked" name="id_payement" value="{{p.id_vrstica}}" /></td>
-<td><a href="http://localhost:9080/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{p.id_agreement}}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr" target="_top">{{p.id_agreement}}</a></td>
+<td><a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{p.id_agreement}}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr" target="_top">{{p.id_agreement}}</a></td>
 <td>{{p.amount}}</td>
 <td>{{p.bank_account2}}</td>
 </tr>
