@@ -143,7 +143,7 @@ def export(request):
         xml = tostring(x, pretty_print = False, xml_declaration=True, encoding='UTF-8')
         xml = xml.replace('xmlns__xsi', 'xmlns:xsi') # I can't seem to set this attrib normaly
         
-        filename = "db%s.xml" % time.strftime("%Y-%m-%d", time.localtime())
+        filename = "db-%s-%s-%s.xml" % (time.strftime("%Y-%m-%d", time.localtime()), pay[0]['id_project'], request.POST['type'] )
         
         sql = "INSERT INTO datoteke_izvozene (filename, content) VALUES (%s, %s)"
         cursor.execute(sql, [filename, xml])
