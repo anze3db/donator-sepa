@@ -36,7 +36,8 @@ def get_payments_list(*args):
         + "WHERE p.id_agreement = a.id_agreement AND p.pay_type='04' "\
         + "  AND pr.id_project = a.id_project AND trr.id_project = a.id_project "\
         + "  AND b.sifra_banke ILIKE a.sifra_banke || '%%' "\
-        + "  AND (p.amount_payed IS NULL OR p.amount > p.amount_payed)"
+        + "  AND (p.amount_payed IS NULL OR p.amount > p.amount_payed)"\
+        + "  AND p.storno IS NULL"
     
     if len(args) == 1:
         sql += "  AND p.id_vrstica = %s "
