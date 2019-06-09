@@ -9,6 +9,36 @@ from lxml.etree import tostring
 from website.models import get_payments_list, get_available_approvals, generate_approvals, clear_banks, add_bank
 import time
 
+from docxtpl import DocxTemplate
+from apiclient.discovery import build
+from oauth2client.service_account import ServiceAccountCredentials
+from httplib2 import Http
+import io
+from apiclient.http import MediaIoBaseDownload, MediaFileUpload
+
+
+def _get_projects():
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM sfr_project order by id_project;")
+    rows = cursor.fetchall()
+    
+    project = []
+    for r in rows:
+        project.append({'id': r[0], 'project':r[1].strip()})
+
+    return project
+
+def _get_events():
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM sfr_events order by id_event;")
+    rows = cursor.fetchall()
+    
+    project = []
+    for r in rows:
+        project.append({'id': r[0], 'event':r[1].strip()})
+
+    return project
+
 def index(request):
 
     cursor = connection.cursor()
@@ -17,12 +47,7 @@ def index(request):
         date = '-'.join([request.POST['year'], request.POST['month'], request.POST['day']])
         installments = get_payments_list(date, request.POST['project'])
 
-    cursor.execute("SELECT * FROM sfr_project;")
-    rows = cursor.fetchall()
-    
-    project = []
-    for r in rows:
-        project.append({'id': r[0], 'project':r[1].strip()})
+    project = _get_projects()
         
     
     
@@ -173,3 +198,147 @@ def update_banks(request):
         add_bank(bank.strip().split("    "))
 
     return HttpResponse("O", 'text')
+
+def invoices(request):
+    data = {
+        'years': range(datetime.now().year, 2006, -1),
+        'projects': _get_projects(),
+        'events': _get_events(),
+        'date': datetime.now().strftime('%Y-%m-%d')
+    }
+    if request.POST:
+        cursor = connection.cursor()
+        cursor.execute(
+            """SELECT DISTINCT 
+                    a.id_agreement,
+                    api.id_vrstica,
+                    a.name_company,
+                    a.street,
+                    a.street_number,
+                    a.id_post,
+                    a.post_name,
+                    a.tax_number,
+                    api.amount
+                 FROM sfr_agreement AS a
+                 JOIN agreement_pay_installment AS api ON api.id_agreement = a.id_agreement
+                WHERE api.storno ISNULL 
+                  AND api.amount > 0 
+                  AND api.date_izpis ISNULL
+                  AND api.debit_type = 'A1'
+                  AND api.leto = %s
+                  AND api.id_project = %s
+                  AND a.id_event = %s
+            """, (
+                request.POST.get('year')[2:],
+                request.POST.get('project'),
+                request.POST.get('event')
+            )
+        )
+        rows = cursor.fetchall()
+        invoices = []
+        for row in rows:
+            invoice = {
+                'id_agreement': row[0],
+                'id_vrstica': row[1],
+                'name_company': row[2],
+                'street': row[3],
+                'street_number': row[4],
+                'id_post': row[5],
+                'post_name': row[6],
+                'tax_number': row[7],
+                'amount': row[8],
+            }
+            invoices.append(invoice)
+        data['invoices'] = invoices
+        data['invoices_len'] = len(invoices)
+        return render_to_response('invoices.html', data, context_instance=RequestContext(request))
+    return render_to_response('invoices.html', data, context_instance=RequestContext(request))
+
+def invoices_export(request):
+    installments = request.POST.getlist("installments")
+    is_store_date = request.POST.get("store_date") == 'on'
+    store_date = datetime.strptime(request.POST.get("date"), "%Y-%m-%d")
+    cursor = connection.cursor()
+    
+    cursor.execute(
+        """SELECT DISTINCT 
+                a.id_agreement,
+                api.id_vrstica,
+                a.name_company,
+                a.street,
+                a.street_number,
+                a.id_post,
+                a.post_name,
+                a.tax_number,
+                api.amount,
+                a.date_agreement,
+                api.date_activate
+             FROM sfr_agreement AS a
+             JOIN agreement_pay_installment AS api ON api.id_agreement = a.id_agreement
+            WHERE api.id_vrstica IN ({}) 
+        """.format(','.join('%s' for _ in installments)), installments)
+    rows = cursor.fetchall()
+    invoices = []
+    for row in rows:
+        invoice = {
+            'id_pogodbe': row[0],
+            'id_vrstica': row[1],
+            'naziv_podjetja': row[2],
+            'ulica': row[3].strip(),
+            'ulicna_stevilka': row[4].strip(),
+            'postna_stevilka': row[5],
+            'posta': row[6],
+            'davcna_stevilka': row[7],
+            'celoten_znesek': row[8],
+            'datum_pogodbe': row[9].strftime('%d. %m. %Y'),
+            'datum_zapadlosti': row[10].strftime('%d. %m. %Y'),
+            'datum_vnosa': store_date.strftime('%d. %m. %Y')
+            
+        }
+        invoices.append(invoice)
+    
+    # AUTH DRIVE:
+    scopes = ['https://www.googleapis.com/auth/drive']
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('donator-1500c8e231aa.json', scopes)
+    http_auth = credentials.authorize(Http())
+    drive = build('drive', 'v3', http=http_auth)
+    
+    # FETCH TEMPLATE
+    file_id = '1D2DyCUuUyqeGBA3tDZTa-pRZhBUfOPoPk64dCjG7UD8'
+    drive_request = drive.files().export_media(fileId=file_id,
+                                         mimeType='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, drive_request)
+    done = False
+    while done is False:
+        status, done = downloader.next_chunk()
+
+    # GENERATE FILE
+    filename = "{}-racun.docx".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print datetime.now()
+    doc = DocxTemplate(fh)
+    context = { 'racuni' : invoices }
+    doc.render(context)
+    doc.save(filename)
+
+    # UPLOAD FILE
+    file_metadata = {'name': filename, "parents" : ['11H0nuJ6YXSdxL9azPrppr56YVXL4LiPO']}
+
+    media = MediaFileUpload(filename)
+    file = drive.files().create(body=file_metadata,
+                                media_body=media,
+                                fields='id').execute()
+    
+    # STORE DATE
+    if is_store_date:
+        print "EXECUTE", [store_date] + installments
+        cursor.execute("BEGIN")
+        cursor.execute("""
+            UPDATE agreement_pay_installment SET date_izpis = %s
+            WHERE id_vrstica IN ({}) 
+        """.format(','.join('%s' for _ in installments)), [store_date] + installments)
+        cursor.execute("COMMIT")
+    return render_to_response('invoices_done.html', {
+        "file_id": file.get('id'),
+        "file_name": filename
+    }, context_instance=RequestContext(request))

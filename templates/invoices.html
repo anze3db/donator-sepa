@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block content %}
+{% load db_extra %}
+<div style="float:left; padding-right:20px;">
+<h3>Izvozi račune:</h3>
+<form method="post">
+{% csrf_token %}
+<table>
+<tr>
+  <td>Projekt</td>
+  <td>
+    <select name="project">
+      {% for project in projects %}
+        <option value="{{project.id}}">{{project.id}} {{project.project}}</option>
+      {% endfor %}
+    </select>
+  </td>
+</tr>
+<tr>
+  <td>Leto</td>
+  <td>
+    <select name="year">
+      {% for year in years %}
+        <option>{{year}}</option>
+      {% endfor %}
+    </select>
+  </td>
+</tr>
+<tr>
+  <td>Dogodek</td>
+  <td>
+    <select name="event">
+      {% for event in events %}
+        <option value="{{event.id}}">{{event.id}} {{event.event}}</option>
+      {% endfor %}
+    </select>
+  </td>
+</tr>
+<!-- <tr>
+  <td>Datum</td>
+  <td>
+    <input type="date" name="date" value="{{date}}" />
+  </td>
+</tr> -->
+</table>
+<input type="submit" value="Izpiši" />
+</form>
+
+<form action="/invoices/export/" method="POST">
+  {% csrf_token %}
+  <p>St obrokov: {{invoices_len}}</p>
+  <table>
+  <tr>
+    <th>Izberi</th>
+    <th>Id pogodbe</th>
+    <th>Naziv podjetja</th>
+    <th>Ulica</th>
+    <th>Ulična Št.</th>
+    <th>Poštna Št.</th>
+    <th>Pošta</th>
+    <th>Davčna Št.</th>
+    <th>Znesek</th>
+  </tr>
+
+  {% for invoice in invoices %}
+  <tr>
+    <td><input type="checkbox" value="{{invoice.id_vrstica}}" name="installments" checked></td>
+    <td><a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{invoice.id_agreement}}&uredi=1">{{invoice.id_agreement}}</a></td>
+    <td>{{invoice.name_company}}</td>
+    <td>{{invoice.street}}</td>
+    <td>{{invoice.street_number}}</td>
+    <td>{{invoice.id_post}}</td>
+    <td>{{invoice.post_name}}</td>
+    <td>{{invoice.tax_number}}</td>
+    <th>{{invoice.amount}}</th>
+  <tr>
+  {% endfor %}
+  </table>
+  <input type="checkbox" name="store_date" checked> Zapiši datum <input type="date" name="date" value="{{date}}" />
+  <input type="submit" value="Izvozi">
+</form>
+{% endblock %}
