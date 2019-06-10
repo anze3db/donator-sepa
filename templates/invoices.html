@@ -43,9 +43,10 @@
   </td>
 </tr> -->
 </table>
+<a href="https://docs.google.com/document/d/1D2DyCUuUyqeGBA3tDZTa-pRZhBUfOPoPk64dCjG7UD8/edit" target="_blank">Predloga za racune</a><br>
 <input type="submit" value="Izpiši" />
 </form>
-
+{% if invoices %}
 <form action="/invoices/export/" method="POST">
   {% csrf_token %}
   <p>St obrokov: {{invoices_len}}</p>
@@ -65,7 +66,7 @@
   {% for invoice in invoices %}
   <tr>
     <td><input type="checkbox" value="{{invoice.id_vrstica}}" name="installments" checked></td>
-    <td><a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{invoice.id_agreement}}&uredi=1">{{invoice.id_agreement}}</a></td>
+    <td><a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{invoice.id_agreement}}&uredi=1&return=/DntStart.cgi?rm=IzvoziRacune">{{invoice.id_agreement}}</a></td>
     <td>{{invoice.name_company}}</td>
     <td>{{invoice.street}}</td>
     <td>{{invoice.street_number}}</td>
@@ -79,4 +80,5 @@
   <input type="checkbox" name="store_date" checked> Zapiši datum <input type="date" name="date" value="{{date}}" />
   <input type="submit" value="Izvozi">
 </form>
+{% endif %}
 {% endblock %}
