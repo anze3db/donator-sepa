@@ -1,3 +1,4 @@
+import locale
 from datetime import date
 from django.db import connection
 from django.http import HttpResponse
@@ -16,6 +17,7 @@ from httplib2 import Http
 import io
 from apiclient.http import MediaIoBaseDownload, MediaFileUpload
 
+locale.setlocale(locale.LC_ALL, 'sl_SI')
 
 def _get_projects():
     cursor = connection.cursor()
@@ -228,6 +230,7 @@ def invoices(request):
                   AND api.leto = %s
                   AND api.id_project = %s
                   AND a.id_event = %s
+             ORDER BY a.id_agreement, api.id_vrstica
             """, (
                 request.POST.get('year')[2:],
                 request.POST.get('project'),
@@ -246,7 +249,7 @@ def invoices(request):
                 'id_post': row[5],
                 'post_name': row[6],
                 'tax_number': row[7],
-                'amount': row[8],
+                'amount': locale.currency(row[8], symbol="", grouping=True),
             }
             invoices.append(invoice)
         data['invoices'] = invoices
@@ -275,7 +278,8 @@ def invoices_export(request):
                 api.date_activate
              FROM sfr_agreement AS a
              JOIN agreement_pay_installment AS api ON api.id_agreement = a.id_agreement
-            WHERE api.id_vrstica IN ({}) 
+            WHERE api.id_vrstica IN ({})
+         ORDER BY a.id_agreement, api.id_vrstica
         """.format(','.join('%s' for _ in installments)), installments)
     rows = cursor.fetchall()
     invoices = []
@@ -289,7 +293,7 @@ def invoices_export(request):
             'postna_stevilka': row[5],
             'posta': row[6],
             'davcna_stevilka': row[7],
-            'celoten_znesek': row[8],
+            'celoten_znesek': locale.currency(row[8], symbol="", grouping=True),
             'datum_pogodbe': row[9].strftime('%d. %m. %Y'),
             'datum_zapadlosti': row[10].strftime('%d. %m. %Y'),
             'datum_vnosa': store_date.strftime('%d. %m. %Y')
@@ -315,7 +319,6 @@ def invoices_export(request):
 
     # GENERATE FILE
     filename = "{}-racun.docx".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    print datetime.now()
     doc = DocxTemplate(fh)
     context = { 'racuni' : invoices }
     doc.render(context)
@@ -331,7 +334,6 @@ def invoices_export(request):
     
     # STORE DATE
     if is_store_date:
-        print "EXECUTE", [store_date] + installments
         cursor.execute("BEGIN")
         cursor.execute("""
             UPDATE agreement_pay_installment SET date_izpis = %s
