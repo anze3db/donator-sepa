@@ -17,7 +17,7 @@ from httplib2 import Http
 import io
 from apiclient.http import MediaIoBaseDownload, MediaFileUpload
 
-locale.setlocale(locale.LC_ALL, 'sl_SI')
+locale.setlocale(locale.LC_ALL, 'sl_SI.UTF-8')
 
 def _get_projects():
     cursor = connection.cursor()
