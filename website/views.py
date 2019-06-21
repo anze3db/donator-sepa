@@ -275,7 +275,8 @@ def invoices_export(request):
                 a.tax_number,
                 api.amount,
                 a.date_agreement,
-                api.date_activate
+                api.date_activate,
+                a.emso
              FROM sfr_agreement AS a
              JOIN agreement_pay_installment AS api ON api.id_agreement = a.id_agreement
             WHERE api.id_vrstica IN ({})
@@ -296,7 +297,8 @@ def invoices_export(request):
             'celoten_znesek': locale.currency(row[8], symbol="", grouping=True),
             'datum_pogodbe': row[9].strftime('%d. %m. %Y'),
             'datum_zapadlosti': row[10].strftime('%d. %m. %Y'),
-            'datum_vnosa': store_date.strftime('%d. %m. %Y')
+            'datum_vnosa': store_date.strftime('%d. %m. %Y'),
+            'emso': row[11],
             
         }
         invoices.append(invoice)
