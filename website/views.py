@@ -138,7 +138,11 @@ def export(request):
             E.CdtrAcct(
                 E.Id(E.IBAN("SI56" + pay[0]["id_trr"].replace("-", ""))), E.Ccy("EUR")
             ),
-            E.CdtrAgt(E.FinInstnId(E.BIC("ABANSI2X"))),
+            E.CdtrAgt(
+                E.FinInstnId(
+                    E.BICFI("ABANSI2X") if version == "2.2" else E.BIC("ABANSI2X")
+                )
+            ),
             # E.UltmtCdtr(E.Nm(pay[0]['name_project']), E.Id(E.OrgId(E.Othr(E.Id(theId[7:]))))),
             E.ChrgBr("SLEV"),
             E.CdtrSchmeId(
@@ -173,7 +177,11 @@ def export(request):
                         E.AmdmntInd("false"),
                     )
                 ),
-                E.DbtrAgt(E.FinInstnId(E.BIC(p["bic"]))),
+                E.DbtrAgt(
+                    E.FinInstnId(
+                        E.BICFI(p["bic"]) if version == "2.2" else E.BIC(p["bic"])
+                    )
+                ),
                 E.Dbtr(
                     E.Nm(p["first_name"] + " " + p["scnd_name"]),
                     E.PstlAdr(
@@ -198,10 +206,16 @@ def export(request):
             )
             payment.append(TxInf)
 
-        x = E.Document(
-            E.CstmrDrctDbtInitn(header, payment),
-            xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02",
-        )
+        if version == "2.2":
+            x = E.Document(
+                E.CstmrDrctDbtInitn(header, payment),
+                xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.08",
+            )
+        else:
+            x = E.Document(
+                E.CstmrDrctDbtInitn(header, payment),
+                xmlns="urn:iso:std:iso:20022:tech:xsd:pain.008.001.02",
+            )
         x.set("xmlns__xsi", "http://www.w3.org/2001/XMLSchema-instance")
         xml = tostring(x, pretty_print=False, xml_declaration=True, encoding="UTF-8")
         xml = xml.replace(
