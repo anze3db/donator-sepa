@@ -1,77 +1,87 @@
 {% extends "layout.html" %}
 {% block content %}
-{% load db_extra %}
-<div style="float:left; padding-right:20px;">
-<h3>Izvoz direktnih bremenitev:</h3>
-<form method="post">
-{% csrf_token %}
-<label for="date">Današnji datum: <strong>{{date|date:'d-m-Y'}}</strong></label> 
-<br /><br />
-<select id="day" name="day">
-<option>8</option>
-<option selected="selected">18</option>
-<option>28</option>
-</select> - 
-<select id="month" name="month">
-{% for m in month %}
-<option {% if m.current %}selected="selected"{%endif%}>{{m.month}}</option>
-{% endfor %}
-</select> - 
-<select id="year" name="year">
-{% for y in year %}
-<option {% if y.current %}selected="selected"{%endif%}>{{y.year}}</option>
-{% endfor %}
-</select> 
-za projekt 
-<select id="project" name="project">
-{% for p in project %}
-<option value="{{p.id}}">{{p.project}}</option>
-{% endfor %}
-</select>
-<br /><br />
-<input type="submit" value="Izpiši" />
-</form>
-
-
-{% for type, value in installments.items %}
-{% if value %}
-<form action="/export" method="POST">
-{% csrf_token %}
-<input type="hidden" name="type" value="{{type}}" />
-<h4>{{type|pretty_name}}</h4>
-<table>
-<tr>
-<th></th>
-<th>Referenčna številka</th>
-<th>Znesek</th>
-<th>Poravnalni račun</th>
-</tr>
-{% for p in value %}
-<tr>
-<td><input type="checkbox" checked="checked" name="id_payement" value="{{p.id_vrstica}}" /></td>
-<td><a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{p.id_agreement}}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr" target="_top">{{p.id_agreement}}</a></td>
-<td>{{p.amount}}</td>
-<td>{{p.bank_account2}}</td>
-</tr>
-{% endfor %}
-</table>
-<!-- 
-<input type="checkbox" name="record-transaction" id="record-transaction" checked="checked" /><label for="record-transaction">Zabeleži obrok</label> --><input type="submit" value="Izvozi" />
-
-</form>
-{% endif %}
-{% endfor %}
-</div>
-<div style="float:left; padding-left:20px; border-left: 1px solid black;">
-<h3>Soglasja:</h3>
-<form action="/approvals" method="POST">
-{% csrf_token %}
-<input type="number" value="10" name="num_approvals" />
-<input type="submit" value="Generiraj" />
-
-</form>
-<br />
-Št. prostih soglasij <strong>{{num_approvals}}</strong><br />
-<a href="/approvals_show">Prikaži</a>
-</div>
+    {% load db_extra %}
+    <div style="float:left; padding-right:20px;">
+        <h3>Izvoz direktnih bremenitev:</h3>
+        <form method="post">
+            {% csrf_token %}
+            <label for="date">
+                Današnji datum: <strong>{{ date|date:'d-m-Y' }}</strong>
+            </label>
+            <br />
+            <br />
+            <select id="day" name="day">
+                <option>8</option>
+                <option selected="selected">18</option>
+                <option>28</option>
+            </select>
+            -
+            <select id="month" name="month">
+                {% for m in month %}
+                    <option {% if m.current %}selected="selected"{% endif %}>{{ m.month }}</option>
+                {% endfor %}
+            </select>
+            -
+            <select id="year" name="year">
+                {% for y in year %}
+                    <option {% if y.current %}selected="selected"{% endif %}>{{ y.year }}</option>
+                {% endfor %}
+            </select>
+            za projekt
+            <select id="project" name="project">
+                {% for p in project %}<option value="{{ p.id }}">{{ p.project }}</option>{% endfor %}
+            </select>
+            <br />
+            <br />
+            <input type="submit" value="Izpiši" />
+        </form>
+        {% for type, value in installments.items %}
+            {% if value %}
+                <form action="/export" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="{{ type }}" />
+                    <h4>{{ type|pretty_name }}</h4>
+                    <table>
+                        <tr>
+                            <th></th>
+                            <th>Referenčna številka</th>
+                            <th>Znesek</th>
+                            <th>Poravnalni račun</th>
+                        </tr>
+                        {% for p in value %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox"
+                                           checked="checked"
+                                           name="id_payement"
+                                           value="{{ p.id_vrstica }}" />
+                                </td>
+                                <td>
+                                    <a href="http://donator/DntPogodbe.cgi?rm=uredi_pogodbo&id_agreement={{ p.id_agreement }}&uredi=1&nazaj=zahtevki&return=/DntStart.cgi?rm=dbr"
+                                       target="_top">{{ p.id_agreement }}</a>
+                                </td>
+                                <td>{{ p.amount }}</td>
+                                <td>{{ p.bank_account2 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    <!--
+<input type="checkbox" name="record-transaction" id="record-transaction" checked="checked" /><label for="record-transaction">Zabeleži obrok</label> -->
+                    <input type="submit" value="Izvozi" />
+                </form>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div style="float:left; padding-left:20px; border-left: 1px solid black;">
+        <h3>Soglasja:</h3>
+        <form action="/approvals" method="POST">
+            {% csrf_token %}
+            <input type="number" value="10" name="num_approvals" />
+            <input type="submit" value="Generiraj" />
+        </form>
+        <br />
+        Št. prostih soglasij <strong>{{ num_approvals }}</strong>
+        <br />
+        <a href="/approvals_show">Prikaži</a>
+    </div>
 {% endblock %}
