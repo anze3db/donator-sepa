@@ -112,7 +112,7 @@ def export(request):
             E.CtrlSum(CtrlSum),
             E.InitgPty(
                 E.Nm(pay[0]["name_project"]),
-                E.Id(E.OrgId(E.Othr(E.Id(theId[7:]), E.SchmeNm(E.Prtry("SEPA"))))),
+                E.Id(E.OrgId(E.Othr(E.Id(theId[7:])))),
             ),
         )
 
