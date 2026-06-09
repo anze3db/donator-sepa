@@ -132,6 +132,13 @@ def export(request):
             E.Cdtr(
                 E.Nm(pay[0]["name_project"]),
                 E.PstlAdr(
+                    E.PstCd("4000"),
+                    E.TwnNm("Kranj"),
+                    E.Ctry("SI"),
+                    E.AdrLine("Planina 3"),
+                )
+                if version == "2.2"
+                else E.PstlAdr(
                     E.Ctry("SI"), E.AdrLine("Planina 3"), E.AdrLine("4000 Kranj")
                 ),
             ),
@@ -185,6 +192,13 @@ def export(request):
                 E.Dbtr(
                     E.Nm(p["first_name"] + " " + p["scnd_name"]),
                     E.PstlAdr(
+                        E.PstCd(str(p["id_post"])),
+                        E.TwnNm(p["post_name"]),
+                        E.Ctry("SI"),
+                        E.AdrLine(p["street"] + " " + p["street_number"]),
+                    )
+                    if version == "2.2"
+                    else E.PstlAdr(
                         E.Ctry("SI"),
                         E.AdrLine(p["street"] + " " + p["street_number"]),
                         E.AdrLine(p["post_name"]),
